@@ -4,3 +4,7 @@ all:
 
 clean:
 	rm -f heater.o heater.elf
+
+dist:
+	rm -f ../dist/rabbit-heater-`date +%Y%m%d`.zip
+	cd ..; zip -qr dist/rabbit-heater-`date +%Y%m%d`.zip rabbit-heater -x "*/.*" "*/bin/*" "*.launch" "*.patch" "*.hex"
