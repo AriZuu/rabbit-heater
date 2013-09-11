@@ -35,7 +35,7 @@ static volatile int adcPot = 0;
 static volatile int adcTemp = 0;
 
 #define MOSFET_GATE_PIN BIT6
-#define ZERO_CROSS_DETECT_PIN BIT0
+#define ZERO_DETECT_PIN BIT0
 
 #define PWM_HZ	0.5
 #define ACLK_HZ 10000
@@ -57,7 +57,7 @@ static volatile int adcTemp = 0;
   // Unused pins as inputs with pull-down.
 
   P1DIR = 0;
-  P1REN = ~(MOSFET_GATE_PIN | BIT1 | BIT2);
+  P1REN = ~(MOSFET_GATE_PIN | BIT1 | BIT2 | ZERO_DETECT_PIN);
   P2DIR = 0;
   P2REN = 0xff;
 
@@ -71,6 +71,11 @@ static volatile int adcTemp = 0;
 
   P1OUT &= ~MOSFET_GATE_PIN;
   P1DIR |= MOSFET_GATE_PIN;                     // P1.6 output
+
+  // Configure voltage zero level detect pin
+
+  P1IE |= ZERO_DETECT_PIN;
+  P1IES |= ZERO_DETECT_PIN;
 
   // Timer A0 for PWM
 
@@ -124,18 +129,11 @@ static volatile int adcTemp = 0;
   }
 }
 
+static bool currentGate = false;
+
 void pendOnOff(bool onOff)
 {
-  switch (onOff) {
-  case false:
-    P1OUT &= ~MOSFET_GATE_PIN;
-    break;
-
-  case true:
-    P1OUT |= MOSFET_GATE_PIN;
-    break;
-  }
-
+  currentGate = onOff;
 }
 
 void __attribute__((interrupt(TIMER0_A0_VECTOR))) timerIrqHandler()
@@ -198,3 +196,17 @@ void __attribute__((interrupt(ADC10_VECTOR))) ADC10_ISR(void)
 }
 
 
+void __attribute__((interrupt(PORT1_VECTOR))) zeroDetect(void)
+{
+  P1IFG &= ~ZERO_DETECT_PIN;
+
+  switch (currentGate) {
+  case false:
+    P1OUT &= ~MOSFET_GATE_PIN;
+    break;
+
+  case true:
+    P1OUT |= MOSFET_GATE_PIN;
+    break;
+  }
+}
