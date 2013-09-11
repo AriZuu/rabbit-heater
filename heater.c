@@ -59,6 +59,7 @@ static volatile int adcTemp = 0;
 
   // Timer A0 for PWM
 
+  P1OUT &= ~BIT6;
   P1DIR |= BIT6;                     // P1.6 output
 
   TA0CCR0 = (ACLK_HZ / PWM_HZ) - 1;
