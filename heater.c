@@ -34,6 +34,9 @@ static uint16_t* tempCal30 = (uint16_t*)(0x10DA + 0x8);
 static volatile int adcPot = 0;
 static volatile int adcTemp = 0;
 
+#define MOSFET_GATE_PIN BIT6
+#define ZERO_CROSS_DETECT_PIN BIT0
+
 #define PWM_HZ	0.5
 #define ACLK_HZ 10000
 
@@ -51,16 +54,25 @@ static volatile int adcTemp = 0;
   DCOCTL  = CALDCO_1MHZ;
   BCSCTL3 = LFXT1S_2;         // Use VLO
 
+  // Unused pins as inputs with pull-down.
+
+  P1DIR = 0;
+  P1REN = ~(MOSFET_GATE_PIN | BIT1 | BIT2);
+  P2DIR = 0;
+  P2REN = 0xff;
+
   initConsole();
 
   printf("Start\r\n");
 
   ADC10AE0 |= (1 << 4);              // PA.1 ADC option select
 
-  // Timer A0 for PWM
+  // Configure MOSFET gate pin
 
-  P1OUT &= ~BIT6;
-  P1DIR |= BIT6;                     // P1.6 output
+  P1OUT &= ~MOSFET_GATE_PIN;
+  P1DIR |= MOSFET_GATE_PIN;                     // P1.6 output
+
+  // Timer A0 for PWM
 
   TA0CCR0 = (ACLK_HZ / PWM_HZ) - 1;
 
@@ -116,11 +128,11 @@ void pendOnOff(bool onOff)
 {
   switch (onOff) {
   case false:
-    P1OUT &= ~BIT6;
+    P1OUT &= ~MOSFET_GATE_PIN;
     break;
 
   case true:
-    P1OUT |= BIT6;
+    P1OUT |= MOSFET_GATE_PIN;
     break;
   }
 
